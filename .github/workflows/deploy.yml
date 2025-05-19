@@ -1,0 +1,54 @@
+name: Deploy to UCloud
+
+on:
+  push:
+    branches:
+      - main  # 或者您的主分支名称
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Build Docker image
+        run: docker build -t contract-app .
+
+      - name: Save Docker image
+        run: docker save contract-app > contract-app.tar
+
+      - name: Deploy to UCloud
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.UCLOUD_HOST }}
+          username: ${{ secrets.UCLOUD_USERNAME }}
+          key: ${{ secrets.UCLOUD_SSH_KEY }}
+          source: "contract-app.tar"
+          target: "/tmp"
+          strip_components: 0
+
+      - name: Execute remote commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.UCLOUD_HOST }}
+          username: ${{ secrets.UCLOUD_USERNAME }}
+          key: ${{ secrets.UCLOUD_SSH_KEY }}
+          script: |
+            cd /tmp
+            docker load < contract-app.tar
+            docker stop contract-app || true
+            docker rm contract-app || true
+            docker run -d -p 3000:3000 --name contract-app contract-app
+            rm contract-app.tar

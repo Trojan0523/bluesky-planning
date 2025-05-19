@@ -52,3 +52,107 @@ jobs:
             docker rm contract-app || true
             docker run -d -p 3000:3000 --name contract-app contract-app
             rm contract-app.tar
+
+      - name: Send Feishu Notification
+        if: success()
+        uses: joelwmale/webhook-action@master
+        with:
+          url: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          body: |
+            {
+              "msg_type": "post",
+              "content": {
+                "post": {
+                  "zh_cn": {
+                    "title": "部署成功通知",
+                    "content": [
+                      [
+                        {
+                          "tag": "text",
+                          "text": "🎉 项目部署成功！\n\n"
+                        },
+                        {
+                          "tag": "text",
+                          "text": "📦 部署信息：\n"
+                        },
+                        {
+                          "tag": "text",
+                          "text": "- 仓库：${{ github.repository }}\n"
+                        },
+                        {
+                          "tag": "text",
+                          "text": "- 分支：${{ github.ref_name }}\n"
+                        },
+                        {
+                          "tag": "text",
+                          "text": "- 提交者：${{ github.actor }}\n"
+                        },
+                        {
+                          "tag": "text",
+                          "text": "- 提交信息：${{ github.event.head_commit.message }}\n"
+                        },
+                        {
+                          "tag": "text",
+                          "text": "- 部署时间：${{ steps.deploy.outputs.time }}\n"
+                        },
+                        {
+                          "tag": "text",
+                          "text": "\n🔗 访问地址：http://106.75.246.192"
+                        }
+                      ]
+                    ]
+                  }
+                }
+              }
+            }
+          headers: '{"Content-Type": "application/json"}'
+
+      - name: Send Feishu Notification on Failure
+        if: failure()
+        uses: joelwmale/webhook-action@master
+        with:
+          url: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          body: |
+            {
+              "msg_type": "post",
+              "content": {
+                "post": {
+                  "zh_cn": {
+                    "title": "部署失败通知",
+                    "content": [
+                      [
+                        {
+                          "tag": "text",
+                          "text": "❌ 项目部署失败！\n\n"
+                        },
+                        {
+                          "tag": "text",
+                          "text": "📦 部署信息：\n"
+                        },
+                        {
+                          "tag": "text",
+                          "text": "- 仓库：${{ github.repository }}\n"
+                        },
+                        {
+                          "tag": "text",
+                          "text": "- 分支：${{ github.ref_name }}\n"
+                        },
+                        {
+                          "tag": "text",
+                          "text": "- 提交者：${{ github.actor }}\n"
+                        },
+                        {
+                          "tag": "text",
+                          "text": "- 提交信息：${{ github.event.head_commit.message }}\n"
+                        },
+                        {
+                          "tag": "text",
+                          "text": "\n请检查 GitHub Actions 日志了解详细错误信息。"
+                        }
+                      ]
+                    ]
+                  }
+                }
+              }
+            }
+          headers: '{"Content-Type": "application/json"}'
